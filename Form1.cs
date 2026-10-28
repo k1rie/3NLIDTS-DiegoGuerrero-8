@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using MySql.Data.MySqlClient;
 
@@ -14,12 +12,6 @@ namespace _3NLIDTS_DiegoGuerrero_8
         public Form1()
         {
             InitializeComponent();
-            // Declaración de manejadores/controladores de eventos
-            txbNombre.TextChanged += ValidarNombre;
-            txbApellidos.TextChanged += ValidarApellidos;
-            txbEdad.TextChanged += ValidarEdad;
-            txbEstatura.TextChanged += ValidarEstatura;
-            txbTelefono.Leave += ValidarTelefono;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -65,40 +57,32 @@ namespace _3NLIDTS_DiegoGuerrero_8
             {
                 genero = "Otro";
             }
-            // Validar que los campos tengan el formato correcto
-            if (EsEnteroValido(edad) && EsFloatValido(estatura) && TelefonoValido(telefono) && EsTextoValidoN(nombre) && EsTextoValidoA(apellidos))
+            //Crear una cadena con los datos
+            string datos = $"Nombres: {nombre}\r\nApellidos: {apellidos} \r\nTeléfono: {telefono} " + $"\r\nEstatura: {estatura} m\r\nEdad: {edad} años\r\nGénero: {genero}\r\n";
+            // Guardar los datos en un archivo de texto (carpeta Documentos del usuario actual)
+            string rutaArchivo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "3NAgoDic26.txt");
+            bool archivoExiste = File.Exists(rutaArchivo);
+            if (archivoExiste == false)
             {
-                //Crear una cadena con los datos
-                string datos = $"Nombres: {nombre}\r\nApellidos: {apellidos} \r\nTeléfono: {telefono} " + $"\r\nEstatura: {estatura} m\r\nEdad: {edad} años\r\nGénero: {genero}\r\n";
-                // Guardar los datos en un archivo de texto (carpeta Documentos del usuario actual)
-                string rutaArchivo = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "3NAgoDic26.txt");
-                bool archivoExiste = File.Exists(rutaArchivo);
-                if (archivoExiste == false)
-                {
-                    File.WriteAllText(rutaArchivo, datos);
-                }
-                else
-                {
-                    // Verificar si el archivo ya existe
-                    using (StreamWriter writer = new StreamWriter(rutaArchivo, true))
-                    {
-                        if (archivoExiste)
-                        { // Si el archivo existe, añadir un separador antes del nuevo registro
-                            writer.WriteLine();
-                        }
-                        writer.WriteLine(datos);
-                    }
-                }
-                // Insertar en la Base de Datos (se hace siempre, exista o no el archivo)
-                insertarRegistros(nombre, apellidos, int.Parse(edad), decimal.Parse(estatura, CultureInfo.InvariantCulture), telefono, genero);
-                MessageBox.Show("Datos insertados en la Base de Datos:\n\n" + datos, "BasePA", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                // Mostrar un mensaje con los datos capturados
-                MessageBox.Show("Datos guardados con éxito:\n\n" + datos, "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                File.WriteAllText(rutaArchivo, datos);
             }
             else
             {
-                MessageBox.Show("Por favor, ingrese datos válidos en los campos.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Verificar si el archivo ya existe
+                using (StreamWriter writer = new StreamWriter(rutaArchivo, true))
+                {
+                    if (archivoExiste)
+                    { // Si el archivo existe, añadir un separador antes del nuevo registro
+                        writer.WriteLine();
+                    }
+                    writer.WriteLine(datos);
+                }
             }
+            // Insertar en la Base de Datos (se hace siempre, exista o no el archivo)
+            insertarRegistros(nombre, apellidos, int.Parse(edad), decimal.Parse(estatura, CultureInfo.InvariantCulture), telefono, genero);
+            MessageBox.Show("Datos insertados en la Base de Datos:\n\n" + datos, "BasePA", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            // Mostrar un mensaje con los datos capturados
+            MessageBox.Show("Datos guardados con éxito:\n\n" + datos, "Información", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void btnLimpiar_Click(object sender, EventArgs e)
@@ -112,59 +96,6 @@ namespace _3NLIDTS_DiegoGuerrero_8
             rbMasculino.Checked = false;
             rbOtro.Checked = false;
             txbNombre.Focus();
-        }
-
-        // Manejadores de eventos: pintan el campo de rojo mientras el dato sea incorrecto
-        private void ValidarNombre(object? sender, EventArgs e)
-        {
-            Marcar(txbNombre, EsTextoValidoN(txbNombre.Text));
-        }
-        private void ValidarApellidos(object? sender, EventArgs e)
-        {
-            Marcar(txbApellidos, EsTextoValidoA(txbApellidos.Text));
-        }
-        private void ValidarEdad(object? sender, EventArgs e)
-        {
-            Marcar(txbEdad, EsEnteroValido(txbEdad.Text));
-        }
-        private void ValidarEstatura(object? sender, EventArgs e)
-        {
-            Marcar(txbEstatura, EsFloatValido(txbEstatura.Text));
-        }
-        private void ValidarTelefono(object? sender, EventArgs e)
-        {
-            if (!TelefonoValido(txbTelefono.Text))
-            {
-                MessageBox.Show("El teléfono debe tener 10 dígitos.", "Error Teléfono", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            Marcar(txbTelefono, TelefonoValido(txbTelefono.Text));
-        }
-        private void Marcar(TextBox caja, bool valido)
-        {
-            caja.BackColor = valido || caja.Text.Length == 0 ? SystemColors.Window : Color.MistyRose;
-        }
-
-        // Funciones de validación
-        private bool EsEnteroValido(string valor)
-        {
-            return int.TryParse(valor, out _);
-        }
-        private bool EsFloatValido(string valor)
-        {
-            return decimal.TryParse(valor, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out _);
-        }
-        private bool TelefonoValido(string valor)
-        {
-            return Regex.IsMatch(valor, @"^\d{10}$");
-        }
-        private bool EsTextoValidoN(string valor)
-        {
-            // Acepta letras con acento, ñ y ü (ej. "Muñoz", "Güemes")
-            return Regex.IsMatch(valor, @"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$");
-        }
-        private bool EsTextoValidoA(string valor)
-        {
-            return Regex.IsMatch(valor, @"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$");
         }
     }
 }
